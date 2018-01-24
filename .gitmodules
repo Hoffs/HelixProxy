@@ -1,0 +1,3 @@
+[submodule "HProxy/deps/uWebSockets"]
+	path = HProxy/deps/uWebSockets
+	url = https://github.com/uNetworking/uWebSockets.git
