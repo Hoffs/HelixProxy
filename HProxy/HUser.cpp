@@ -2,13 +2,17 @@
 #include <iostream>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <evpp/buffer.h>
+#include <evpp/tcp_conn.h>
 
-void huser::connect_handler(const boost::system::error_code &ec)
+void huser::connect_handler(const evpp::TCPConnPtr &conn)
 {
-	if (!ec)
+	if (conn->IsConnected())
 	{
-		std::cout << "Connected to TCPServer" << std::endl;
-		socket_->async_receive()
+		std::cout << "Connected to TCP Server. User: " << this->info() << std::endl;
+	} else
+	{
+		std::cout << "Failed to connect to TCP Server." << " Status: " << conn->status() << ". User: " << this->info() << std::endl;
 	}
 }
 
@@ -17,21 +21,32 @@ std::string huser::info() const
 	return to_string(id_);
 }
 
-huser::huser(boost::asio::io_service &io_service)
+huser::huser(evpp::EventLoop *loop, const int port, const std::function<void(const size_t length, const char *message)> &callback)
 {
+	callback_ = callback;
 	id_ = boost::uuids::uuid(boost::uuids::random_generator()());
-	socket_ = std::make_shared<tcp::socket>(io_service);
-	const tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 4000);
-	socket_->async_connect(endpoint, [this](const boost::system::error_code &ec)
+	const auto conn_string = "127.0.0.1:" + std::to_string(port);
+	client_ = new evpp::TCPClient(loop, conn_string, to_string(id_));
+	
+	client_->SetConnectionCallback([this](const evpp::TCPConnPtr &conn)
 	{
-		std::cout << "Trying to connect to TCPServer" << std::endl;
-		this->connect_handler(ec);
+		this->connect_handler(conn);
 	});
+
+	client_->SetMessageCallback([this](const evpp::TCPConnPtr &conn, evpp::Buffer *msg)
+	{
+		this->message_callback(conn, msg);
+	});
+
+	client_->set_connecting_timeout(evpp::Duration(10.0));
+	std::cout << "Connecting to TCP User: " << this->info() << std::endl;
+	client_->Connect();
 }
 // std::function<void(const size_t response_length, char *response_message)> handler
 void huser::send_async(const size_t length, char* message) const
 {
-	if (!socket_->is_open()) return;
+	std::cout << "Sending to TCP User: " << this->info() << std::endl;
+	if (client_->conn() == nullptr || client_->conn()->IsDisconnected()) return;
 	auto *len = new unsigned char[4]; // Length part of the packet
 	auto *full = new unsigned char [4 + length]; // Full packet
 	auto length_int = size_to_int(length);
@@ -40,19 +55,25 @@ void huser::send_async(const size_t length, char* message) const
 	memcpy(full, len, 4);
 	memcpy(full + 4, message, length);
 
-	socket_->async_send(boost::asio::buffer(full, 4 + length), [](const boost::system::error_code& ec, std::size_t bytes_transferred)
-	{
-		std::cout << "Sent message" << std::endl;
-	});
+	client_->conn()->Send(full, 4 + length);
+	std::cout << "Finished sending to TCP User: " << this->info() << std::endl;
 }
 
 huser::~huser()
 {
-	if (socket_->is_open())
+	std::cout << "Destroying HUser: " << this->info() << std::endl;
+	if (client_->conn() != nullptr && client_->conn()->IsConnected())
 	{
-		socket_->close();
-		socket_ = nullptr;
+		client_->Disconnect();
+		client_ = nullptr;
 	}
+}
+
+void huser::message_callback(const evpp::TCPConnPtr& conn, evpp::Buffer *msg)
+{
+	std::cout << "Received message: " << msg->ToString() << ". User: " << this->info() << std::endl;
+	msg->Skip(4); // Skip 4 size bytes;
+	callback_(msg->length(), msg->data());
 }
 
 int huser::size_to_int(const size_t u)
