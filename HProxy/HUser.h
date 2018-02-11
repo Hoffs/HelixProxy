@@ -1,22 +1,19 @@
 ﻿#pragma once
-#include <boost/asio.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <evpp/tcp_client.h>
 
-using boost::asio::ip::tcp;
-
-class huser
+class helix_user
 {
 private:
-	evpp::TCPClient *client_;
+	std::unique_ptr<evpp::TCPClient> client_;
 	boost::uuids::uuid id_{};
-	static int size_to_int(size_t u);
 	std::function<void(size_t length, const char *message)> callback_;
+	evpp::EventLoop* loop_;
 public:
-	huser(evpp::EventLoop *loop, int port, const std::function<void(size_t length, const char *message)> &callback);
-	~huser();
-	void connect_handler(const evpp::TCPConnPtr &conn);
+	helix_user(evpp::EventLoop *loop, int port, const std::function<void(size_t length, const char *message)> &callback);
+	~helix_user();
+	void connect_handler(const evpp::TCPConnPtr &conn) const;
 	std::string info() const;
 	void send_async(const size_t length, char* message) const;
-	void message_callback(const evpp::TCPConnPtr &conn, evpp::Buffer *msg);
+	void message_callback(const evpp::TCPConnPtr &conn, evpp::Buffer *msg) const;
 };
