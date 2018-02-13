@@ -7,7 +7,7 @@
 #include <evpp/event_loop.h>
 #include <evpp/event_loop_thread.h>
 
-helix_user::helix_user(evpp::EventLoop *loop, const int port, const std::function<void(const size_t length, const char *message)> &callback)
+helix_user::helix_user(evpp::EventLoop *loop, const int port, const std::function<void(size_t length, std::shared_ptr<char> message)> &callback)
 {
 	callback_ = callback;
 	loop_ = loop;
@@ -49,16 +49,15 @@ std::string helix_user::info() const
 void helix_user::send_async(const size_t length, char* message) const
 {
 	LOG(INFO) << "Sending message to TCP server with length " << length << " from user: " << this->info(); 
-	if (client_->conn() == nullptr || client_->conn()->IsDisconnected()) return;
-	auto *len = new unsigned char[4]; // Length part of the packet
-	auto *full = new unsigned char [4 + length]; // Full packet
+	if (client_->conn() == nullptr || !client_->conn()->IsConnected()) return;
+	auto *full = new char[4 + length]; // Full packet
 
-	memcpy(len, &length, sizeof(length));
-	memcpy(full, len, 4);
+	memcpy(full, &length, 4);
 	memcpy(full + 4, message, length);
 
 	client_->conn()->Send(full, 4 + length);
 	LOG(INFO) << "Sent message to TCP server with length " << length << " from user: " << this->info(); 
+	delete[] full;
 }
 
 
@@ -66,9 +65,10 @@ void helix_user::message_callback(const evpp::TCPConnPtr& conn, evpp::Buffer *ms
 {
 	LOG(INFO) << "Received message from TCP server with length " << msg->length() << " for user: " << this->info(); 
 	msg->Skip(4); // Skip 4 size bytes;
-	const auto message = new char[msg->length()];
+	auto message = std::make_shared<char>(msg->length());
+	// const auto message = new char[msg->length()];
 	const auto len = msg->length();
-	memcpy(message, msg->data(), msg->length());
+	memcpy(message.get(), msg->data(), msg->length());
 	msg->Skip(msg->length());
 	callback_(len, message);
 }
@@ -102,6 +102,5 @@ helix_user::~helix_user()
 		});
 		// client_ = nullptr;
 	}
-
 	callback_ = nullptr;
 }

@@ -6,7 +6,7 @@
 helix_proxy_server::helix_proxy_server(const int port)
 {
 	loop_ = std::make_unique<evpp::EventLoop>();
-	pool_ = std::make_unique<evpp::EventLoopThreadPool>(loop_.get(), 20);
+	pool_ = std::make_unique<evpp::EventLoopThreadPool>(loop_.get(), 1);
 
 	h_.onMessage([](uWS::WebSocket<uWS::SERVER>* ws, char * message, size_t length, uWS::OpCode op_code)
 	{
@@ -38,12 +38,14 @@ helix_proxy_server::helix_proxy_server(const int port)
 
 void helix_proxy_server::on_connection_handler(uWS::WebSocket<uWS::SERVER>* ws, uWS::HttpRequest req)
 {
-	auto *user = new helix_user(pool_->GetNextLoop(), 4000, [ws](const size_t length, const char *message)
+	auto *user = new helix_user(pool_->GetNextLoop(), 4000, [ws](const size_t length, std::shared_ptr<char> message)
 	{
-		ws->send(message, length, uWS::OpCode::BINARY, [](uWS::WebSocket<uWS::SERVER> *ws, void *data, bool cancelled, void *reserver)
+		/*
+		auto f = [message](uWS::WebSocket<uWS::SERVER> *ws, void *data, bool cancelled, void *reserver)
 		{
-			LOG(INFO) << "Message sent back to WS Client successfully.";
-		});
+			LOG(INFO) << "Message sent back to WS Client successfully. " << message;
+		};*/
+		ws->send(message.get(), length, uWS::OpCode::TEXT); // TODO: Change to binary after testing
 	});
 	ws->setUserData(user);
 	LOG(INFO) << "Client connected to WS proxy: " << user->info();
