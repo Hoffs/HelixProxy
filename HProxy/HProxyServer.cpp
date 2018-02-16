@@ -45,9 +45,11 @@ void helix_proxy_server::on_connection_handler(uWS::WebSocket<uWS::SERVER>* ws, 
 
 void helix_proxy_server::on_message_handler(uWS::WebSocket<uWS::SERVER>* ws, char *message, const size_t length, uWS::OpCode op_code)
 {
+	const auto msg = new char[length];
+	memcpy(msg, message, length);
 	auto *user = static_cast<helix_user*>(ws->getUserData());
-	LOG(INFO) << "Message received from WS Client:" << user->info();
-	user->send_async(length, message);
+	LOG(INFO) << "Message received from WS proxy client: " << user->info();
+	user->send_async(length, msg);
 }
 
 
