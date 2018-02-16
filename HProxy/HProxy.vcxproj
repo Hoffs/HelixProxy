@@ -116,13 +116,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="HProxyServer.cpp" />
-    <ClCompile Include="HUser.cpp" />
+    <ClCompile Include="helix_proxy_server.cpp" />
+    <ClCompile Include="helix_user.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="HProxyServer.h" />
-    <ClInclude Include="HUser.h" />
+    <ClInclude Include="helix_proxy_server.h" />
+    <ClInclude Include="helix_user.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
