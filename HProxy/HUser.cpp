@@ -48,25 +48,37 @@ std::string helix_user::info() const
 
 void helix_user::send_async(const size_t length, char* message) const
 {
-	LOG(INFO) << "Sending message to TCP server with length " << length << " from user: " << this->info(); 
-	if (client_->conn() == nullptr || !client_->conn()->IsConnected()) return;
+	this->send_async(length, message, 0);
+}
+
+void helix_user::send_async(const size_t length, char* message, int attempt) const
+{
+	LOG(INFO) << "Sending message to TCP server with length " << length << " from user: " << this->info() << " . Attempt: " << attempt; 
+	if (attempt > max_attempts_) return;
+	if (client_->conn() == nullptr || !client_->conn()->IsConnected())
+	{
+		loop_->RunAfter(evpp::Duration(1.0 * (attempt + 1)), [this, length, message, attempt]()
+		{
+			this->send_async(length, message, attempt + 1);
+		});
+		return;
+	};
 	auto *full = new char[4 + length]; // Full packet
 
 	memcpy(full, &length, 4);
 	memcpy(full + 4, message, length);
 
 	client_->conn()->Send(full, 4 + length);
-	LOG(INFO) << "Sent message to TCP server with length " << length << " from user: " << this->info(); 
+	LOG(INFO) << "Sent message to TCP server with length " << length << " from user: " << this->info() << " . On attempt: " << attempt; 
 	delete[] full;
+	delete[] message;
 }
-
 
 void helix_user::message_callback(const evpp::TCPConnPtr& conn, evpp::Buffer *msg) const
 {
 	LOG(INFO) << "Received message from TCP server with length " << msg->length() << " for user: " << this->info(); 
 	msg->Skip(4); // Skip 4 size bytes;
 	auto message = std::make_shared<char>(msg->length());
-	// const auto message = new char[msg->length()];
 	const auto len = msg->length();
 	memcpy(message.get(), msg->data(), msg->length());
 	msg->Skip(msg->length());
@@ -77,8 +89,8 @@ helix_user::~helix_user()
 {
 	client_->SetMessageCallback(nullptr);
 	client_->SetConnectionCallback(nullptr);
-	
-	if (client_->conn() != nullptr && (!client_->conn()->IsDisconnected()))
+
+	if (client_->conn() != nullptr && (!client_->conn()->IsDisconnected())) // If connected
 	{
 		auto client = client_.get();
 		client_.release();
@@ -86,21 +98,19 @@ helix_user::~helix_user()
 		client->SetConnectionCallback([client](const evpp::TCPConnPtr &conn)
 		{
 			delete client;
-			//loop_->RunInLoop([client]()
-			//{
-				// this->client_ = nullptr;
-			//});
 		});
 
-		// if (client_->conn() != nullptr && client_->conn()->IsConnected())
-		// {
-		// 	loop_->RunAfter(evpp::Duration(1.5), [this]() { client_->Disconnect();});
-		// }
-		loop_->RunInLoop([client]()
+		client->Disconnect();
+	} else // If not yet connected
+	{
+		auto client = client_.get();
+		client_.release();
+		
+		client->Disconnect();
+		loop_->RunAfter(evpp::Duration(1.5), [client]()
 		{
-			client->Disconnect();
+			delete client;
 		});
-		// client_ = nullptr;
 	}
 	callback_ = nullptr;
 }

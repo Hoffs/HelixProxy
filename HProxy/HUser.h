@@ -9,11 +9,13 @@ private:
 	boost::uuids::uuid id_{};
 	std::function<void(size_t length, std::shared_ptr<char> message)> callback_;
 	evpp::EventLoop* loop_;
+	const int max_attempts_ = 5;
 public:
 	helix_user(evpp::EventLoop *loop, int port, const std::function<void(size_t length, std::shared_ptr<char> message)> &callback);
 	~helix_user();
 	void connect_handler(const evpp::TCPConnPtr &conn) const;
 	std::string info() const;
 	void send_async(const size_t length, char* message) const;
+	void send_async(const size_t length, char* message, int attempt) const;
 	void message_callback(const evpp::TCPConnPtr &conn, evpp::Buffer *msg) const;
 };

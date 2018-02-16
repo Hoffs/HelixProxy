@@ -6,7 +6,7 @@
 helix_proxy_server::helix_proxy_server(const int port)
 {
 	loop_ = std::make_unique<evpp::EventLoop>();
-	pool_ = std::make_unique<evpp::EventLoopThreadPool>(loop_.get(), 1);
+	pool_ = std::make_unique<evpp::EventLoopThreadPool>(loop_.get(), 1); // TODO: Adjust for better performance
 
 	h_.onMessage([](uWS::WebSocket<uWS::SERVER>* ws, char * message, size_t length, uWS::OpCode op_code)
 	{
@@ -25,12 +25,8 @@ helix_proxy_server::helix_proxy_server(const int port)
 
 
 	if (h_.listen(port)) {
-		evpp_thread_ = new std::thread([this]() 
-		{
-			LOG(INFO) << "Starting evpp event loop...";
-			pool_->Start(false);
-			// this->loop_->Run();
-		});
+		LOG(INFO) << "Starting evpp event loop...";
+		pool_->Start(false);
 		LOG(INFO) << "Listening on port " << port << "...";
 		h_.run();
 	}
@@ -40,18 +36,14 @@ void helix_proxy_server::on_connection_handler(uWS::WebSocket<uWS::SERVER>* ws, 
 {
 	auto *user = new helix_user(pool_->GetNextLoop(), 4000, [ws](const size_t length, std::shared_ptr<char> message)
 	{
-		/*
-		auto f = [message](uWS::WebSocket<uWS::SERVER> *ws, void *data, bool cancelled, void *reserver)
-		{
-			LOG(INFO) << "Message sent back to WS Client successfully. " << message;
-		};*/
+		if (ws == nullptr) return;
 		ws->send(message.get(), length, uWS::OpCode::TEXT); // TODO: Change to binary after testing
 	});
 	ws->setUserData(user);
 	LOG(INFO) << "Client connected to WS proxy: " << user->info();
 }
 
-void helix_proxy_server::on_message_handler(uWS::WebSocket<uWS::SERVER>* ws, char * message, const size_t length, uWS::OpCode op_code)
+void helix_proxy_server::on_message_handler(uWS::WebSocket<uWS::SERVER>* ws, char *message, const size_t length, uWS::OpCode op_code)
 {
 	auto *user = static_cast<helix_user*>(ws->getUserData());
 	LOG(INFO) << "Message received from WS Client:" << user->info();
@@ -59,9 +51,9 @@ void helix_proxy_server::on_message_handler(uWS::WebSocket<uWS::SERVER>* ws, cha
 }
 
 
-void helix_proxy_server::on_disconnection_handler(uWS::WebSocket<true>* ws, int code, char* message, size_t length)
+void helix_proxy_server::on_disconnection_handler(uWS::WebSocket<true>* ws, int code, char *message, size_t length)
 {
 	auto *user = static_cast<helix_user*>(ws->getUserData());
-	LOG(INFO) << "Client disconnected from proxy: " << user->info();
+	LOG(INFO) << "Client disconnected from WS proxy: " << user->info();
 	delete user;
 }
