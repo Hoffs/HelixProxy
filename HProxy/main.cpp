@@ -1,5 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "HProxyServer.h"
+#include "helix_proxy_server.h"
 #include <evpp/logging.h>
 
 int main(int argc, char* argv[])

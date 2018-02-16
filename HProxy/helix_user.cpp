@@ -1,4 +1,4 @@
-﻿#include "HUser.h"
+﻿#include "helix_user.h"
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <evpp/buffer.h>
