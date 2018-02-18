@@ -25,7 +25,7 @@ helix_user::helix_user(evpp::EventLoop *loop, const int port, const std::functio
 		this->message_callback(conn, msg);
 	});
 
-	client_->set_connecting_timeout(evpp::Duration(10.0));
+	client_->set_connecting_timeout(evpp::Duration(5.0));
 	client_->set_reconnect_interval(evpp::Duration(5.0));
 	client_->Connect();
 }
@@ -54,7 +54,7 @@ void helix_user::send_async(const size_t length, char* message) const
 void helix_user::send_async(const size_t length, char* message, int attempt) const
 {
 	LOG(INFO) << "Sending message to TCP server with length " << length << " from user: " << this->info() << " . Attempt: " << attempt; 
-	if (attempt > max_attempts_) return;
+	if (attempt > max_attempts_ || is_deleted_) return;
 	if (client_->conn() == nullptr || !client_->conn()->IsConnected())
 	{
 		loop_->RunAfter(evpp::Duration(1.0 * (attempt + 1)), [this, length, message, attempt]()
@@ -87,9 +87,7 @@ void helix_user::message_callback(const evpp::TCPConnPtr& conn, evpp::Buffer *ms
 
 helix_user::~helix_user()
 {
-	client_->SetMessageCallback(nullptr);
-	client_->SetConnectionCallback(nullptr);
-
+	is_deleted_ = true;
 	if (client_->conn() != nullptr && (!client_->conn()->IsDisconnected())) // If connected
 	{
 		auto client = client_.get();
@@ -107,7 +105,7 @@ helix_user::~helix_user()
 		client_.release();
 		
 		client->Disconnect();
-		loop_->RunAfter(evpp::Duration(1.5), [client]()
+		loop_->RunAfter(evpp::Duration(10.0), [client]()
 		{
 			delete client;
 		});
