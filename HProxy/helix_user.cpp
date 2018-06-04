@@ -1,19 +1,17 @@
 ﻿#include "helix_user.h"
-#include <boost/uuid/random_generator.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <evpp/buffer.h>
 #include <evpp/tcp_conn.h>
 #include <glog/logging.h>
 #include <evpp/event_loop.h>
 #include <evpp/event_loop_thread.h>
 
-helix_user::helix_user(evpp::EventLoop *loop, const int port, const std::function<void(size_t length, char *message)> &callback)
+helix_user::helix_user(evpp::EventLoop *loop, const std::string ip, const int port, const std::function<void(size_t length, char *message)> &callback)
 {
+	client_ip_ = ip;
 	callback_ = callback;
 	loop_ = loop;
 	const auto conn_string = "127.0.0.1:" + std::to_string(port);
-	id_ = boost::uuids::uuid(boost::uuids::random_generator()());
-	client_ = std::make_unique<evpp::TCPClient>(loop, conn_string, to_string(id_));
+	client_ = std::make_unique<evpp::TCPClient>(loop, conn_string, client_ip_);
 	
 	client_->SetConnectionCallback([this](const evpp::TCPConnPtr &conn)
 	{
@@ -43,7 +41,7 @@ void helix_user::connect_handler(const evpp::TCPConnPtr &conn) const
 
 std::string helix_user::info() const
 {
-	return to_string(id_);
+	return this->client_ip_;
 }
 
 void helix_user::send_async(const size_t length, char* message) const
@@ -78,11 +76,7 @@ void helix_user::message_callback(const evpp::TCPConnPtr& conn, evpp::Buffer *ms
 {
 	LOG(INFO) << "Received message from TCP server with length " << msg->length() << " for user: " << this->info(); 
 	msg->Skip(4); // Skip 4 size bytes;
-<<<<<<< HEAD
 	auto message = new char[msg->length()];
-=======
-	auto *message = new char[msg->length()];
->>>>>>> cb1fa42b9e4034cdbd9b829fc21eac5c49e87d0b
 	const auto len = msg->length();
 	memcpy(message, msg->data(), msg->length());
 	msg->Skip(msg->length());
