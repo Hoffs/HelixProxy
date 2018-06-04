@@ -78,7 +78,11 @@ void helix_user::message_callback(const evpp::TCPConnPtr& conn, evpp::Buffer *ms
 {
 	LOG(INFO) << "Received message from TCP server with length " << msg->length() << " for user: " << this->info(); 
 	msg->Skip(4); // Skip 4 size bytes;
+<<<<<<< HEAD
 	auto message = new char[msg->length()];
+=======
+	auto *message = new char[msg->length()];
+>>>>>>> cb1fa42b9e4034cdbd9b829fc21eac5c49e87d0b
 	const auto len = msg->length();
 	memcpy(message, msg->data(), msg->length());
 	msg->Skip(msg->length());

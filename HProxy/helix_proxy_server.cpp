@@ -34,11 +34,20 @@ helix_proxy_server::helix_proxy_server(const int in_port, const int out_port)
 
 void helix_proxy_server::on_connection_handler(uWS::WebSocket<uWS::SERVER>* ws, uWS::HttpRequest req) const
 {
+<<<<<<< HEAD
 	auto *user = new helix_user(pool_->GetNextLoop(), this->out_port_, [ws](const size_t length, char* message)
 	{
 		if (ws == nullptr) return;
 		ws->send(message, length, uWS::OpCode::BINARY);
 		delete message;
+=======
+	auto *user = new helix_user(pool_->GetNextLoop(), 4000, [ws](const size_t length, char *message)
+	{
+		if (ws == nullptr) return;
+		ws->send(message, length, uWS::OpCode::BINARY);
+		delete[] message;
+		LOG(INFO) << "Sent message to WS Proxy client with length: " << length;
+>>>>>>> cb1fa42b9e4034cdbd9b829fc21eac5c49e87d0b
 	});
 	ws->setUserData(user);
 	LOG(INFO) << "Client connected to WS proxy: " << user->info();
