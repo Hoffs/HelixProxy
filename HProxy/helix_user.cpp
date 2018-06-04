@@ -7,7 +7,7 @@
 #include <evpp/event_loop.h>
 #include <evpp/event_loop_thread.h>
 
-helix_user::helix_user(evpp::EventLoop *loop, const int port, const std::function<void(size_t length, std::shared_ptr<char> message)> &callback)
+helix_user::helix_user(evpp::EventLoop *loop, const int port, const std::function<void(size_t length, char *message)> &callback)
 {
 	callback_ = callback;
 	loop_ = loop;
@@ -78,9 +78,9 @@ void helix_user::message_callback(const evpp::TCPConnPtr& conn, evpp::Buffer *ms
 {
 	LOG(INFO) << "Received message from TCP server with length " << msg->length() << " for user: " << this->info(); 
 	msg->Skip(4); // Skip 4 size bytes;
-	auto message = std::make_shared<char>(msg->length());
+	auto message = new char[msg->length()];
 	const auto len = msg->length();
-	memcpy(message.get(), msg->data(), msg->length());
+	memcpy(message, msg->data(), msg->length());
 	msg->Skip(msg->length());
 	callback_(len, message);
 }

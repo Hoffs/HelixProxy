@@ -7,12 +7,12 @@ class helix_user
 private:
 	std::unique_ptr<evpp::TCPClient> client_;
 	boost::uuids::uuid id_{};
-	std::function<void(size_t length, std::shared_ptr<char> message)> callback_;
+	std::function<void(size_t length, char *message)> callback_;
 	evpp::EventLoop* loop_;
 	const int max_attempts_ = 5;
 	bool is_deleted_ = false;
 public:
-	helix_user(evpp::EventLoop *loop, int port, const std::function<void(size_t length, std::shared_ptr<char> message)> &callback);
+	helix_user(evpp::EventLoop *loop, int port, const std::function<void(size_t length, char *message)> &callback);
 	~helix_user();
 	void connect_handler(const evpp::TCPConnPtr &conn) const;
 	std::string info() const;
