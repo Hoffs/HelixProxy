@@ -6,5 +6,4 @@ Helix proxy server allows connections from WebSocket to connect to existing TCP 
 ## Dependencies
 - [evpp](https://github.com/Qihoo360/evpp)
 - [uWebSockets](https://github.com/uNetworking/uWebSockets)
-- [boost](https://github.com/boostorg/boost)
 - [glog](https://github.com/google/glog)
