@@ -35,5 +35,6 @@ WORKDIR /root/
 COPY --from=0 /usr/local/src/HelixProxy/helixproxy .
 COPY --from=0 /usr/local/src/uwebsockets/libuWS.so /usr/lib
 ENV IN_PORT=4300
+ENV OUT_IP=localhost:4400
 ENV OUT_PORT=4400
-CMD ./helixproxy ${IN_PORT} ${OUT_PORT}
+CMD ./helixproxy ${IN_PORT} ${OUT_IP} ${OUT_PORT}
