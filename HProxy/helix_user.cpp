@@ -5,13 +5,15 @@
 #include <evpp/event_loop.h>
 #include <evpp/event_loop_thread.h>
 
-helix_user::helix_user(evpp::EventLoop *loop, const std::string ip, const int port, const std::function<void(size_t length, char *message)> &callback)
+helix_user::helix_user(evpp::EventLoop *loop, std::string ip, char *server_ip, const int server_port, const std::function<void(size_t length, char *message)> &callback)
 {
 	client_ip_ = ip;
 	callback_ = callback;
 	loop_ = loop;
-	const auto conn_string = "127.0.0.1:" + std::to_string(port);
-	client_ = std::make_unique<evpp::TCPClient>(loop, conn_string, client_ip_);
+	server_ip_ = server_ip;
+	std::stringstream ss;
+	ss << server_ip_ << ':' << std::to_string(server_port);
+	client_ = std::make_unique<evpp::TCPClient>(loop, ss.str(), client_ip_);
 	
 	client_->SetConnectionCallback([this](const evpp::TCPConnPtr &conn)
 	{

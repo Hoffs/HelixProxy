@@ -10,9 +10,10 @@ class helix_proxy_server
 	std::unique_ptr<evpp::EventLoop> loop_;
 	std::unique_ptr<evpp::EventLoopThreadPool> pool_;
 	int out_port_;
+	char *out_ip_;
 	void on_connection_handler(uWS::WebSocket<uWS::SERVER> *ws, uWS::HttpRequest req) const;
 	static void on_message_handler(uWS::WebSocket<uWS::SERVER> *ws, char *message, size_t length, uWS::OpCode op_code);
 	static void on_disconnection_handler(uWS::WebSocket<true>* ws, int code, char* message, size_t length);
 public:
-	explicit helix_proxy_server(const int in_port, const int out_port);
+	helix_proxy_server(int in_port, char *out_ip, int out_port);
 };

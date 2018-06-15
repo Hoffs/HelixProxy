@@ -10,12 +10,13 @@ private:
 	evpp::EventLoop* loop_;
 	const int max_attempts_ = 5;
 	bool is_deleted_ = false;
+	char *server_ip_;
 public:
-	helix_user(evpp::EventLoop *loop, std::string ip, int port, const std::function<void(size_t length, char *message)> &callback);
+	helix_user(evpp::EventLoop *loop, std::string ip, char *server_ip, int server_port, const std::function<void(size_t length, char *message)> &callback);
 	~helix_user();
 	void connect_handler(const evpp::TCPConnPtr &conn) const;
 	std::string info() const;
-	void send_async(const size_t length, char* message) const;
-	void send_async(const size_t length, char* message, int attempt) const;
+	void send_async(size_t length, char* message) const;
+	void send_async(size_t length, char* message, int attempt) const;
 	void message_callback(const evpp::TCPConnPtr &conn, evpp::Buffer *msg) const;
 };
